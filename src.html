@@ -1,0 +1,190 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>100% Orange Juice evade or defend calculator</title><style>#result_tbl {
+  background-color:#f8f9fa;
+  color:#202122;
+  margin:1em 0;
+  border:2px solid #a2a9b1;
+  border-collapse:collapse
+ }
+ #result_tbl th,
+ #result_tbl td,
+ #result_tbl th,
+ #result_tbl td {
+  border:1px solid #a2a9b1;
+  padding:0.2em 0.4em
+ }
+ #result_tbl th,
+ #result_tbl th {
+  background-color:#eaecf0;
+  text-align:center
+ }
+ #result_tbl > caption {
+  font-weight:bold
+ }
+
+input {
+	width:3em
+}
+
+</style></head><body>
+
+<label for="def">DEF: </label><input id="def" type="number" value="0" step="1">
+<label for="evd">EVD: </label><input id="evd" type="number" value="0" step="1">
+<label for="hp">Current HP: </label><input id="hp" type="number" value="6" step="1" min="1">
+<label for="dice">Dice: </label><input id="dice" type="number" value="1" step="1" min="1">
+<table id="result_tbl" style="text-align:center">
+<thead><tr>
+<th rowspan="2">Attacker roll
+</th>
+<th colspan="2">Average damage
+</th>
+<th colspan="2">Optimal choice
+</th>
+<th colspan="2">Survival chance
+</th></tr>
+<tr>
+<th>Evade
+</th>
+<th>Defend
+</th>
+<th>Goal: Min damage
+</th>
+<th>Goal: Survival
+</th>
+<th>Evade
+</th>
+<th>Defend
+</th></tr></thead><tbody id="result"></tbody></table><p id="noscript">JavaScript needs to be enabled to run this calculator.</p>
+<script>(function() {
+"use strict";
+
+var ns_ele = document.getElementById("noscript");
+ns_ele.parentNode.removeChild(ns_ele);
+
+var MAX_DIE_AMOUNT = 4;
+var result = document.getElementById("result");
+
+var def_input = document.getElementById("def");
+var evd_input = document.getElementById("evd");
+var hp_input = document.getElementById("hp");
+var dice_input = document.getElementById("dice");
+
+var def = parseInt(def_input.value);
+var evd = parseInt(evd_input.value);
+var hp = parseInt(hp_input.value);
+var defender_die_amount = parseInt(dice_input.value);
+
+function formatDecimal(num) {
+	return parseFloat(num.toFixed(2)).toString();
+}
+
+function updatePage() {
+	while (result.lastChild) {
+		result.removeChild(result.lastChild);
+	}
+
+	var max_defender_roll = 6*defender_die_amount;
+	
+	for (var attacker_roll = 1; attacker_roll <= MAX_DIE_AMOUNT*6; ++attacker_roll) {
+		var row = document.createElement("tr");
+		
+		var next_td;
+		
+		next_td = document.createElement("td");
+		next_td.innerText = attacker_roll;
+		row.appendChild(next_td);
+		
+		// Index i contains data for the equivalent attacker dice roll i+1. For example averages[0] contains data for an attacker dice roll of 1.
+		var dmg_sum;
+		dmg_sum = 0;
+		var evd_survives = max_defender_roll;
+		for (var evd_roll = 1; evd_roll <= max_defender_roll; ++evd_roll) {
+			var calculated_roll = Math.max(evd_roll+evd, 1);
+			if (attacker_roll >= calculated_roll) {
+				dmg_sum += attacker_roll;
+				if (attacker_roll >= hp) {
+					--evd_survives;
+				}
+			}
+		}
+		var evd_avg = dmg_sum / (max_defender_roll);
+		
+		next_td = document.createElement("td");
+		next_td.innerText = formatDecimal(evd_avg);
+		row.appendChild(next_td);
+		
+		dmg_sum = 0;
+		var def_survives = max_defender_roll;
+		for (var def_roll = 1; def_roll <= max_defender_roll; ++def_roll) {
+			var calculated_roll = Math.max(def_roll+def,1);
+			var dmg_taken = Math.max(attacker_roll-calculated_roll,1);
+			dmg_sum += dmg_taken;
+			if (dmg_taken >= hp) {
+				--def_survives;
+			}
+		}
+		var def_avg = dmg_sum / max_defender_roll;
+		
+		next_td = document.createElement("td");
+		next_td.innerText = formatDecimal(def_avg);
+		row.appendChild(next_td);
+		
+		var min_dmg_goal = evd_avg < def_avg ? "Evade" : "Defend";
+		var survival_goal;
+		if (evd_survives > def_survives) {
+			survival_goal = "Evade";
+		} else if (def_survives > evd_survives) {
+			survival_goal = "Defend";
+		} else {
+			survival_goal = min_dmg_goal;
+		}
+		
+		if (survival_goal === min_dmg_goal) {
+			next_td = document.createElement("td");
+			next_td.innerText = min_dmg_goal;
+			next_td.colSpan = 2;
+			row.appendChild(next_td);
+		} else {
+			next_td = document.createElement("td");
+			next_td.innerText = min_dmg_goal;
+			row.appendChild(next_td);
+			
+			next_td = document.createElement("td");
+			next_td.innerText = survival_goal;
+			row.appendChild(next_td);
+		}
+		
+		next_td = document.createElement("td");
+		next_td.innerText = formatDecimal(100 * evd_survives/max_defender_roll)+"%";
+		row.appendChild(next_td);
+		
+		
+		next_td = document.createElement("td");
+		next_td.innerText = formatDecimal(100 * def_survives/max_defender_roll)+"%";
+		row.appendChild(next_td);
+		
+		result.append(row);
+	}
+}
+
+updatePage();
+
+var listenerOptions = { passive: true };
+def_input.addEventListener("input", function() {
+	def = parseInt(def_input.value);
+	updatePage();
+}, listenerOptions);
+evd_input.addEventListener("input", function() {
+	evd = parseInt(evd_input.value);
+	updatePage();
+}, listenerOptions);
+hp_input.addEventListener("input", function() {
+	hp = parseInt(hp_input.value);
+	updatePage();
+}, listenerOptions);
+dice_input.addEventListener("input", function() {
+	defender_die_amount = parseInt(dice_input.value);
+	updatePage();
+}, listenerOptions);
+
+})();
+</script></body></html>

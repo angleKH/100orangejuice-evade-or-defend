@@ -1,0 +1,1 @@
+html-minifier-terser --collapse-boolean-attributes --collapse-inline-tag-whitespace --collapse-whitespace --conservative-collapse --decode-entities --minify-urls --remove-comments --remove-redundant-attributes --minify-css true --minify-js true src.html > index.html
